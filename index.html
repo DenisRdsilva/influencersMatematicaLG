@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Influencers da Matemática</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #000;
+            color: #fff;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            width: 360px;
+            height: 640px;
+            background: #111;
+            border-radius: 20px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            box-shadow: 0px 0px 20px rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin-top: 10px;
+            border: none;
+            background: #FF2D55;
+            color: white;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #e60039;
+        }
+
+        #question,
+        #options,
+        #timer,
+        #likes,
+        #message {
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        #likes {
+            font-size: 18px;
+            margin-top: 10px;
+        }
+
+        #timer {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #333;
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            border-radius: 20px;
+            border: none;
+            margin-top: 10px;
+            width: 80%;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div id="game">
+            <div id="intro">
+                <h1>Influencers da Matemática 🚀</h1>
+                <p>Ganhe milhões de seguidores resolvendo porcentagens!</p>
+                <button onclick="startGame('easy')">Nivel Fácil</button>
+                <button onclick="startGame('medium')">Nivel Intermediário</button>
+                <button onclick="startGame('hard')">Mestre do Universo</button>
+            </div>
+            <div id="playArea" style="display:none; width:100%;">
+                <div id="timer"></div>
+                <div id="likes">Likes: 0</div>
+                <div id="question"></div>
+                <div id="options"></div>
+                <div id="message"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let levels = ['easy', 'medium', 'hard'];
+        let levelNames = { easy: 'Nivel Fácil', medium: 'Nivel Intermediário', hard: 'Mestre do Universo' };
+
+        function generateRandomPercentageQuestion(min, max, level) {
+            let base, percent, answer;
+            if (level === 'easy') {
+                base = Math.floor(Math.random() * (max - min + 1)) + min;
+                base = base % 5 === 0 ? base : base + (5 - base % 5);
+                percent = [5, 10, 15, 20, 25, 30][Math.floor(Math.random() * 6)];
+            } else if (level === 'medium') {
+                base = Math.floor(Math.random() * (max - min + 1)) + min;
+                percent = [12, 17, 22, 30, 35, 40][Math.floor(Math.random() * 6)];
+            } else {
+                base = Math.floor(Math.random() * (max - min + 1)) + min;
+                percent = [18, 25, 40, 50, 60, 70][Math.floor(Math.random() * 6)];
+            }
+            answer = Math.round((percent / 100) * base);
+            return { q: `Quantos são ${percent}% de ${base}?`, a: `${answer}` };
+        }
+
+        let currentLevelIndex = 0;
+        let questionPool = [];
+        let currentQuestion = 0;
+        let likes = 0;
+        let timer;
+        let timeLeft = 40;
+        let streak = 0;
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function startGame(level) {
+            currentLevelIndex = levels.indexOf(level);
+            likes = 0;
+            streak = 0;
+            document.getElementById('intro').style.display = 'none';
+            document.getElementById('playArea').style.display = 'block';
+            loadLevel();
+        }
+
+        function loadLevel() {
+            let level = levels[currentLevelIndex];
+            alert(`🆕 Iniciando: ${levelNames[level]}`);
+            let min = level === 'easy' ? 100 : level === 'medium' ? 500 : 1000;
+            let max = level === 'easy' ? 500 : level === 'medium' ? 1000 : 2000;
+            questionPool = shuffle(Array.from({ length: 5 }, () => generateRandomPercentageQuestion(min, max, level)));
+            currentQuestion = 0;
+            nextQuestion();
+        }
+
+        function nextQuestion() {
+            if (currentQuestion >= questionPool.length) {
+                currentLevelIndex++;
+                if (currentLevelIndex < levels.length) {
+                    setTimeout(loadLevel, 500);
+                } else {
+                    endGame();
+                }
+                return;
+            }
+
+            let q = questionPool[currentQuestion];
+            document.getElementById('question').innerHTML = `<h2>${q.q}</h2>`;
+            document.getElementById('message').innerHTML = "";
+            document.getElementById('options').innerHTML = `
+                <input type="text" id="answer" placeholder="Digite sua resposta">
+                <br>
+                <button onclick="checkAnswer()">Responder</button>
+            `;
+            timeLeft = 40;
+            document.getElementById('timer').innerHTML = `⏰ ${timeLeft}s`;
+            clearInterval(timer);
+            timer = setInterval(countdown, 1000);
+        }
+
+        function countdown() {
+            timeLeft--;
+            document.getElementById('timer').innerHTML = `⏰ ${timeLeft}s`;
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                loseLike("Tempo esgotado!");
+            }
+        }
+
+        function checkAnswer() {
+            let playerAnswer = document.getElementById('answer').value.trim();
+            let correctAnswer = questionPool[currentQuestion].a;
+            if (playerAnswer === correctAnswer) {
+                streak++;
+                let bonus = streak > 1 ? 1000 : 0;
+                let gained = 2000 + bonus;
+                likes += gained;
+                document.getElementById('message').innerHTML = `🎉 Acertou! Ganhou ${gained} seguidores${bonus ? " (incluindo bônus!)" : ""}`;
+            } else {
+                streak = 0;
+                likes -= 2000;
+                document.getElementById('message').innerHTML = "😢 Errou! Perdeu 2000 seguidores.";
+            }
+            document.getElementById('likes').innerHTML = `Likes: ${likes}`;
+            clearInterval(timer);
+            currentQuestion++;
+            setTimeout(nextQuestion, 2000);
+        }
+
+        function loseLike(msg) {
+            streak = 0;
+            likes -= 2000;
+            document.getElementById('message').innerHTML = `😢 ${msg} Perdeu 2000 seguidores.`;
+            document.getElementById('likes').innerHTML = `Likes: ${likes}`;
+            currentQuestion++;
+            setTimeout(nextQuestion, 2000);
+        }
+
+        function endGame() {
+            document.getElementById('question').innerHTML = `<h2>🏆 Você se tornou um Super Influencer da Matemática! 🏆</h2>`;
+            document.getElementById('options').innerHTML = `<p>Total de seguidores conquistados: ${likes}</p><button onclick='restartGame()'>Jogar novamente</button>`;
+            document.getElementById('message').innerHTML = "✨ Parabéns pela sua jornada brilhante! ✨";
+            clearInterval(timer);
+        }
+
+        function restartGame() {
+            document.getElementById('playArea').style.display = 'none';
+            document.getElementById('intro').style.display = 'block';
+        }
+    </script>
+</body>
+
+</html>
